@@ -1,4 +1,11 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.text.SimpleDateFormat
+import java.util.Date
+
+val buildTime = System.currentTimeMillis()
+val df = SimpleDateFormat("yyMMddHHmm")
+val buildVersionCode = (buildTime / 1000).toInt()
+val buildVersionName = "1.0.${df.format(Date(buildTime))}"
 
 plugins {
   alias(libs.plugins.android.application)
@@ -17,8 +24,8 @@ android {
     applicationId = "com.aistudio.cfipscanner.lmnawr"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = buildVersionCode
+    versionName = buildVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
