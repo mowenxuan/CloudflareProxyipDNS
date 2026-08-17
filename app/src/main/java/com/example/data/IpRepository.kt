@@ -20,6 +20,8 @@ class IpRepository(
     
     suspend fun clearAll() = scannedIpDao.clearAll()
     
+    suspend fun deleteIp(ip: String) = scannedIpDao.deleteIp(ip)
+    
     suspend fun trimTo100Latest() = scannedIpDao.trimTo100Latest()
 
     suspend fun insertRule(rule: CloudflareSyncRule) = syncRuleDao.insertRule(rule)

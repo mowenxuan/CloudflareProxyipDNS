@@ -29,6 +29,9 @@ interface ScannedIpDao {
     @Query("DELETE FROM scanned_ips")
     suspend fun clearAll()
     
+    @Query("DELETE FROM scanned_ips WHERE ip = :ip")
+    suspend fun deleteIp(ip: String)
+    
     @Query("DELETE FROM scanned_ips WHERE ip NOT IN (SELECT ip FROM scanned_ips ORDER BY timestamp DESC LIMIT 100)")
     suspend fun trimTo100Latest()
 

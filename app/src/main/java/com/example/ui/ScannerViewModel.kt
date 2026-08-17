@@ -165,8 +165,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     ScannerEngine.generateRandomIps(ipsToGeneratePerRound)
                 }
                 
-                ipsToTest.chunked(chunkSize).forEach { chunk ->
-                    if (!isActive) return@forEach
+                for (chunk in ipsToTest.chunked(chunkSize)) {
+                    if (!isActive) break
                     
                     val totalValidInner = _uiState.value.validIps.size
                     val innerValidMatches = if (activeChip == "ALL") {
@@ -175,7 +175,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                          _uiState.value.validIps.count { it.colo.uppercase() == activeChip.uppercase() }
                     }
                     if (innerValidMatches >= targetValidCount || totalValidInner >= targetAllCount) {
-                        return@forEach
+                        break
                     }
                     
                     val jobs = chunk.map { ip ->
@@ -214,6 +214,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                             }
                                             state.copy(validIps = currentValid)
                                         }
+                                    }
+                                } else {
+                                    if (localIps.contains(ip)) {
+                                        repository.deleteIp(ip)
                                     }
                                 }
                             }
