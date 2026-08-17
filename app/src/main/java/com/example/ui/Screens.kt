@@ -486,14 +486,19 @@ fun IpCard(ip: ScannedIp, onToggleFavorite: (ScannedIp) -> Unit) {
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(ip.ip, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault()).format(java.util.Date(ip.timestamp)),
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -505,34 +510,27 @@ fun IpCard(ip: ScannedIp, onToggleFavorite: (ScannedIp) -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(getColoLocation(ip.colo), fontSize = 14.sp, color = TextSecondary)
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "更新时间: " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(ip.timestamp)),
-                        fontSize = 12.sp,
-                        color = TextSecondary
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF332B1A))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("${ip.latency} ms", color = LatencyYellow, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(Icons.Rounded.Router, contentDescription = null, tint = IconBlue, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(onClick = { onToggleFavorite(ip) }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        if (ip.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (ip.isFavorite) PrimaryOrange else TextSecondary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-            }
-            
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF332B1A))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text("${ip.latency} ms", color = LatencyYellow, fontWeight = FontWeight.Bold)
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            Icon(Icons.Rounded.Router, contentDescription = null, tint = IconBlue)
-            Spacer(modifier = Modifier.width(16.dp))
-            IconButton(onClick = { onToggleFavorite(ip) }) {
-                Icon(
-                    if (ip.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = PrimaryOrange
-                )
             }
         }
     }

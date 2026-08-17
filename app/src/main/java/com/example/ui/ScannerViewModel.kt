@@ -219,10 +219,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                             state.copy(validIps = currentValid)
                                         }
                                     }
-                                } else {
-                                    if (localIps.contains(ip)) {
-                                        repository.deleteIp(ip)
-                                    }
                                 }
                             }
                         }
