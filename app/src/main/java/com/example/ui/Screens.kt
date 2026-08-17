@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Search
@@ -287,7 +288,31 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("目标 IP 数量", color = TextPrimary, modifier = Modifier.weight(1f))
+                        Text("完成进度目标 (有效 IP)", color = TextPrimary, modifier = Modifier.weight(1f))
+                        Text("${uiState.targetValidIpCount.toInt()} 个", color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                    }
+                    Slider(
+                        value = uiState.targetValidIpCount,
+                        onValueChange = { viewModel.updateTargetValidIpCount(it) },
+                        valueRange = 1f..100f,
+                        colors = SliderDefaults.colors(thumbColor = PrimaryOrange, activeTrackColor = PrimaryOrange)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("全局目标 (ALL 专用)", color = TextPrimary, modifier = Modifier.weight(1f))
+                        Text("${uiState.targetAllValidIpCount.toInt()} 个", color = PrimaryOrange, fontWeight = FontWeight.Bold)
+                    }
+                    Slider(
+                        value = uiState.targetAllValidIpCount,
+                        onValueChange = { viewModel.updateTargetAllValidIpCount(it) },
+                        valueRange = 100f..1000f,
+                        colors = SliderDefaults.colors(thumbColor = PrimaryOrange, activeTrackColor = PrimaryOrange)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("单轮随机测速数量", color = TextPrimary, modifier = Modifier.weight(1f))
                         Text("${uiState.targetIpCount.toInt()} IPs", color = PrimaryOrange, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -318,7 +343,8 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Filters
-            val colos = listOf("ALL") + uiState.validIps.map { it.colo }.distinct().sorted()
+            val activeAndValid = (listOf(uiState.activeFilter) + uiState.validIps.map { it.colo }).filter { it != "ALL" }.distinct().sorted()
+            val colos = listOf("ALL") + activeAndValid
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(colos) { colo ->
                     val isSelected = uiState.activeFilter == colo
@@ -347,12 +373,6 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
-                IconButton(onClick = {
-                    val ips = uiState.displayedIps.joinToString("\n") { it.ip }
-                    copyToClipboard(context, ips)
-                }) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy All", tint = PrimaryOrange)
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

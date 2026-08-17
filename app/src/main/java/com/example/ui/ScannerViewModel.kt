@@ -1,9 +1,11 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
+import com.example.data.CloudflareSyncRule
 import com.example.data.IpRepository
 import com.example.data.ScannedIp
 import com.example.scanner.ScannerEngine
@@ -12,18 +14,59 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.map
+
+val Context.dataStore by preferencesDataStore(name = "scanner_settings")
+
 class ScannerViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: IpRepository
+    
+    // DataStore keys
+    private val THREADS_KEY = floatPreferencesKey("threads")
+    private val LATENCY_KEY = floatPreferencesKey("max_latency")
+    private val TARGET_IP_KEY = floatPreferencesKey("target_ip_count")
+    private val TARGET_VALID_KEY = floatPreferencesKey("target_valid_count")
+    private val TARGET_ALL_VALID_KEY = floatPreferencesKey("target_all_valid_count")
+    private val API_URL_KEY = stringPreferencesKey("api_url")
     
     init {
         val database = AppDatabase.getDatabase(application)
         repository = IpRepository(database.scannedIpDao(), database.syncRuleDao())
+        
+        // Load settings from DataStore
+        viewModelScope.launch {
+            val prefs = application.dataStore.data.first()
+            _uiState.update { state ->
+                state.copy(
+                    concurrentThreads = prefs[THREADS_KEY] ?: 100f,
+                    maxLatency = prefs[LATENCY_KEY] ?: 350f,
+                    targetIpCount = prefs[TARGET_IP_KEY] ?: 2000f,
+                    targetValidIpCount = prefs[TARGET_VALID_KEY] ?: 10f,
+                    targetAllValidIpCount = prefs[TARGET_ALL_VALID_KEY] ?: 100f,
+                    workerApiUrl = prefs[API_URL_KEY] ?: "proxyipsinp.xxxxxxx.nyc.mn"
+                )
+            }
+        }
+        
+        // Load initial IPs from database into the UI state
+        viewModelScope.launch {
+            repository.allIps.collect { ips ->
+                if (!_uiState.value.isScanning && _uiState.value.validIps.isEmpty()) {
+                    _uiState.update { it.copy(validIps = ips) }
+                }
+            }
+        }
     }
 
     val allSavedIps = repository.allIps
@@ -38,18 +81,32 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun updateApiUrl(url: String) {
         _uiState.update { it.copy(workerApiUrl = url) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[API_URL_KEY] = url } }
     }
     
     fun updateConcurrentThreads(threads: Float) {
         _uiState.update { it.copy(concurrentThreads = threads) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[THREADS_KEY] = threads } }
     }
     
     fun updateMaxLatency(latency: Float) {
         _uiState.update { it.copy(maxLatency = latency) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[LATENCY_KEY] = latency } }
     }
     
     fun updateTargetIpCount(count: Float) {
         _uiState.update { it.copy(targetIpCount = count) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[TARGET_IP_KEY] = count } }
+    }
+    
+    fun updateTargetValidIpCount(count: Float) {
+        _uiState.update { it.copy(targetValidIpCount = count) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[TARGET_VALID_KEY] = count } }
+    }
+    
+    fun updateTargetAllValidIpCount(count: Float) {
+        _uiState.update { it.copy(targetAllValidIpCount = count) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[TARGET_ALL_VALID_KEY] = count } }
     }
     
     fun updateDataCenterFilter(filter: String) {
@@ -63,11 +120,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     fun startScan() {
         if (_uiState.value.isScanning) return
         
+        // Grab local IPs before clearing the state
+        val localIps = _uiState.value.validIps.map { it.ip }.distinct()
+        
         _uiState.update { it.copy(isScanning = true, scannedCount = 0, validIps = emptyList()) }
         
         scanJob = viewModelScope.launch(Dispatchers.Default) {
-            val targetCount = _uiState.value.targetIpCount.toInt()
-            val ipsToTest = ScannerEngine.generateRandomIps(targetCount)
+            val ipsToGeneratePerRound = _uiState.value.targetIpCount.toInt()
             val useApi = _uiState.value.useCloudApi
             var apiUrl = _uiState.value.workerApiUrl.trim()
             if (apiUrl.isNotBlank() && !apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
@@ -76,58 +135,95 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             val maxLatency = _uiState.value.maxLatency.toLong()
             val dataCenters = _uiState.value.dataCenterFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() && it != "ALL" }
             val chunkSize = _uiState.value.concurrentThreads.toInt()
+            val activeChip = _uiState.value.activeFilter
+            val targetValidCount = if (activeChip == "ALL") {
+                _uiState.value.targetAllValidIpCount.toInt()
+            } else {
+                _uiState.value.targetValidIpCount.toInt()
+            }
+            val targetAllCount = _uiState.value.targetAllValidIpCount.toInt()
             
-            ipsToTest.chunked(chunkSize).forEach { chunk ->
-                if (!isActive) return@forEach
+            var isFirstRound = true
+            
+            while (isActive) {
+                val totalValid = _uiState.value.validIps.size
+                val currentValidMatches = if (activeChip == "ALL") {
+                     totalValid
+                } else {
+                     _uiState.value.validIps.count { it.colo.uppercase() == activeChip.uppercase() }
+                }
+
+                if (currentValidMatches >= targetValidCount || totalValid >= targetAllCount) {
+                    break
+                }
                 
-                val jobs = chunk.map { ip ->
-                    launch {
-                        val result = if (useApi && apiUrl.isNotBlank()) {
-                            ScannerEngine.testIpViaApi(apiUrl, ip)
-                        } else {
-                            ScannerEngine.testIp(ip)
-                        }
-                        
-                        listMutex.withLock {
-                            _uiState.update { state ->
-                                state.copy(scannedCount = state.scannedCount + 1)
+                val ipsToTest = if (isFirstRound && localIps.isNotEmpty()) {
+                    isFirstRound = false
+                    localIps
+                } else {
+                    isFirstRound = false
+                    ScannerEngine.generateRandomIps(ipsToGeneratePerRound)
+                }
+                
+                ipsToTest.chunked(chunkSize).forEach { chunk ->
+                    if (!isActive) return@forEach
+                    
+                    val totalValidInner = _uiState.value.validIps.size
+                    val innerValidMatches = if (activeChip == "ALL") {
+                         totalValidInner
+                    } else {
+                         _uiState.value.validIps.count { it.colo.uppercase() == activeChip.uppercase() }
+                    }
+                    if (innerValidMatches >= targetValidCount || totalValidInner >= targetAllCount) {
+                        return@forEach
+                    }
+                    
+                    val jobs = chunk.map { ip ->
+                        launch {
+                            val result = if (useApi && apiUrl.isNotBlank()) {
+                                ScannerEngine.testIpViaApi(apiUrl, ip)
+                            } else {
+                                ScannerEngine.testIp(ip)
                             }
-                            if (result != null && result.latency <= maxLatency) {
-                                val coloMatches = dataCenters.isEmpty() || dataCenters.contains(result.colo.uppercase())
-                                if (coloMatches) {
-                                    val scannedIp = ScannedIp(
-                                        ip = result.ip,
-                                        colo = result.colo,
-                                        latency = result.latency
-                                    )
-                                    // Make sure it is stored in the database locally so it shows in StorageScreen
-                                    repository.insertIp(scannedIp)
-                                    // Also mark it as favorite immediately to show up in the favoriteIps Flow
-                                    repository.updateFavorite(scannedIp.ip, true)
-                                    
-                                    _uiState.update { state ->
-                                        val currentValid = state.validIps.toMutableList()
-                                        val existingIndex = currentValid.indexOfFirst { it.ip == scannedIp.ip }
-                                        if (existingIndex == -1) {
-                                            val index = currentValid.indexOfFirst { it.latency > scannedIp.latency }
-                                            if (index == -1) currentValid.add(scannedIp) else currentValid.add(index, scannedIp)
-                                        } else if (scannedIp.latency < currentValid[existingIndex].latency) {
-                                            currentValid.removeAt(existingIndex)
-                                            val index = currentValid.indexOfFirst { it.latency > scannedIp.latency }
-                                            if (index == -1) currentValid.add(scannedIp) else currentValid.add(index, scannedIp)
+                            
+                            listMutex.withLock {
+                                _uiState.update { state ->
+                                    state.copy(scannedCount = state.scannedCount + 1)
+                                }
+                                if (result != null && result.latency <= maxLatency) {
+                                    val coloMatches = dataCenters.isEmpty() || dataCenters.contains(result.colo.uppercase())
+                                    if (coloMatches) {
+                                        val scannedIp = ScannedIp(
+                                            ip = result.ip,
+                                            colo = result.colo,
+                                            latency = result.latency
+                                        )
+                                        repository.insertIp(scannedIp)
+                                        repository.updateFavorite(scannedIp.ip, true)
+                                        
+                                        _uiState.update { state ->
+                                            val currentValid = state.validIps.toMutableList()
+                                            val existingIndex = currentValid.indexOfFirst { it.ip == scannedIp.ip }
+                                            if (existingIndex == -1) {
+                                                val index = currentValid.indexOfFirst { it.latency > scannedIp.latency }
+                                                if (index == -1) currentValid.add(scannedIp) else currentValid.add(index, scannedIp)
+                                            } else if (scannedIp.latency < currentValid[existingIndex].latency) {
+                                                currentValid.removeAt(existingIndex)
+                                                val index = currentValid.indexOfFirst { it.latency > scannedIp.latency }
+                                                if (index == -1) currentValid.add(scannedIp) else currentValid.add(index, scannedIp)
+                                            }
+                                            state.copy(validIps = currentValid)
                                         }
-                                        state.copy(validIps = currentValid)
                                     }
                                 }
                             }
                         }
                     }
+                    jobs.forEach { it.join() }
                 }
-                jobs.forEach { it.join() }
-                
-                // Trim local storage to max 100
-                repository.trimTo100Latest()
             }
+            
+            repository.trimTo100Latest()
             
             _uiState.update { it.copy(isScanning = false) }
             performAutoSync()
@@ -295,6 +391,8 @@ data class ScannerUiState(
     val concurrentThreads: Float = 100f,
     val maxLatency: Float = 350f,
     val targetIpCount: Float = 2000f,
+    val targetValidIpCount: Float = 10f,
+    val targetAllValidIpCount: Float = 100f,
     val dataCenterFilter: String = "ALL"
 ) {
     val displayedIps: List<ScannedIp>

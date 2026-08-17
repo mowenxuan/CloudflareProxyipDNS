@@ -209,8 +209,18 @@ fun AddSyncRuleDialog(
     var email by remember { mutableStateOf(initialRule?.email ?: "") }
     var apiKey by remember { mutableStateOf(initialRule?.apiKey ?: "") }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DarkBackground) {
-        LazyColumn(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, 
+        containerColor = DarkBackground,
+        sheetState = sheetState
+    ) {
+        LazyColumn(modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.ime)
+        ) {
             item {
                 Text("添加 Cloudflare 域名同步", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Spacer(modifier = Modifier.height(16.dp))
