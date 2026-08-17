@@ -288,7 +288,7 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("完成进度目标 (有效 IP)", color = TextPrimary, modifier = Modifier.weight(1f))
+                        Text("专属目标 (非 ALL 节点有效 IP)", color = TextPrimary, modifier = Modifier.weight(1f))
                         Text("${uiState.targetValidIpCount.toInt()} 个", color = PrimaryOrange, fontWeight = FontWeight.Bold)
                     }
                     Slider(
@@ -504,6 +504,14 @@ fun IpCard(ip: ScannedIp, onToggleFavorite: (ScannedIp) -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(getColoLocation(ip.colo), fontSize = 14.sp, color = TextSecondary)
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "更新时间: " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(ip.timestamp)),
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
                 }
             }
             

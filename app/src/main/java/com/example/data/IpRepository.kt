@@ -30,6 +30,10 @@ class IpRepository(
     suspend fun getAutoSyncRules() = syncRuleDao.getAutoSyncRules()
 
     suspend fun getIpsByColo(coloList: List<String>, limit: Int): List<ScannedIp> {
-        return scannedIpDao.getIpsByColos(coloList, limit)
+        return if (coloList.isEmpty() || coloList.contains("ALL")) {
+            scannedIpDao.getLatestIps(limit)
+        } else {
+            scannedIpDao.getIpsByColos(coloList, limit)
+        }
     }
 }

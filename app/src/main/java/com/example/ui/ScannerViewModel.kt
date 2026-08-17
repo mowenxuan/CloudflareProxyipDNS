@@ -153,8 +153,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                      _uiState.value.validIps.count { it.colo.uppercase() == activeChip.uppercase() }
                 }
 
-                if (currentValidMatches >= targetValidCount || totalValid >= targetAllCount) {
-                    break
+                if (activeChip == "ALL") {
+                    if (totalValid >= targetAllCount) break
+                } else {
+                    if (currentValidMatches >= targetValidCount) break
                 }
                 
                 val ipsToTest = if (isFirstRound && localIps.isNotEmpty()) {
@@ -174,8 +176,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     } else {
                          _uiState.value.validIps.count { it.colo.uppercase() == activeChip.uppercase() }
                     }
-                    if (innerValidMatches >= targetValidCount || totalValidInner >= targetAllCount) {
-                        break
+                    if (activeChip == "ALL") {
+                        if (totalValidInner >= targetAllCount) break
+                    } else {
+                        if (innerValidMatches >= targetValidCount) break
                     }
                     
                     val jobs = chunk.map { ip ->
@@ -227,8 +231,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
             
-            repository.trimTo100Latest()
-            
             _uiState.update { it.copy(isScanning = false) }
             performAutoSync()
         }
@@ -236,6 +238,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     private fun performAutoSync() {
         viewModelScope.launch {
+            repository.trimTo100Latest()
             val autoRules = repository.getAutoSyncRules()
             for (rule in autoRules) {
                 syncRule(rule)
@@ -290,6 +293,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     fun stopScan() {
         scanJob?.cancel()
         _uiState.update { it.copy(isScanning = false) }
+        performAutoSync()
     }
 
     fun toggleFavorite(ip: ScannedIp) {

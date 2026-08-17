@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScannedIpDao {
-    @Query("SELECT * FROM scanned_ips ORDER BY latency ASC")
+    @Query("SELECT * FROM scanned_ips ORDER BY timestamp DESC, latency ASC")
     fun getAllIps(): Flow<List<ScannedIp>>
 
-    @Query("SELECT * FROM scanned_ips WHERE isFavorite = 1 ORDER BY latency ASC")
+    @Query("SELECT * FROM scanned_ips WHERE isFavorite = 1 ORDER BY timestamp DESC, latency ASC")
     fun getFavoriteIps(): Flow<List<ScannedIp>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -35,6 +35,9 @@ interface ScannedIpDao {
     @Query("DELETE FROM scanned_ips WHERE ip NOT IN (SELECT ip FROM scanned_ips ORDER BY timestamp DESC LIMIT 100)")
     suspend fun trimTo100Latest()
 
-    @Query("SELECT * FROM scanned_ips WHERE colo IN (:colos) ORDER BY latency ASC LIMIT :limit")
+    @Query("SELECT * FROM scanned_ips ORDER BY timestamp DESC, latency ASC LIMIT :limit")
+    suspend fun getLatestIps(limit: Int): List<ScannedIp>
+
+    @Query("SELECT * FROM scanned_ips WHERE colo IN (:colos) ORDER BY timestamp DESC, latency ASC LIMIT :limit")
     suspend fun getIpsByColos(colos: List<String>, limit: Int): List<ScannedIp>
 }
