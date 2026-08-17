@@ -1,11 +1,24 @@
-<div align="center">
+# Cloudflare IP 反代与DNS
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+这是一款专为 Android 打造的实用网络工具，旨在帮助用户快速扫描、筛选最优的 Cloudflare（或反代）IP，并将这些优质 IP 自动同步到您的 Cloudflare DNS 记录中。
 
-  <h1>Built with AI Studio</h2>
+## ✨ 核心功能
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+* 🔍 **高速 IP 扫描**: 自定义并发线程数、延迟阈值、目标 IP 数量，快速找出延迟最低的优选节点。
+* 🎯 **数据中心过滤**: 支持根据机场或数据中心（如 HKG, LAX, SJC）进行精准测速和筛选。
+* ☁️ **Worker API 检测**: 支持通过自定义 Cloudflare Worker API 测试 IP 的真实连通性和速度。
+* 🔄 **全自动 DNS 同步**: 结合预设规则，在扫描完成后自动将最优 IP 同步至您的 Cloudflare 域名记录，无缝替换失效/高延迟的旧 IP。
+* 📦 **本地数据管理**: 自动保存历史扫描记录，支持一键收藏和管理优质 IP。
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 📥 下载与安装
 
-</div>
+本项目配置了全自动的 GitHub Actions CI/CD 流水线，代码推送后会自动打包并发布，无需手动编译。
+
+👉 **[前往 Releases 页面下载最新版](../../releases)**
+
+提供的安装包变体：
+
+* **arm64-v8a** (推荐绝大多数现代手机使用，体积小)
+* **armeabi-v7a** (兼容老旧安卓设备)
+* **x86 / x86_64** (适用于安卓模拟器)
+* **universal** (全架构通用安装包)
