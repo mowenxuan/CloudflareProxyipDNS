@@ -144,27 +144,30 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             val dataCenters = _uiState.value.dataCenterFilter.split(",").map { it.trim().uppercase() }.filter { it.isNotEmpty() && it != "ALL" }
             val chunkSize = _uiState.value.concurrentThreads.toInt()
             val activeChips = _uiState.value.activeFilters
-            val targetValidCount = if (activeChips.contains("ALL")) {
-                _uiState.value.targetAllValidIpCount.toInt()
-            } else {
-                _uiState.value.targetValidIpCount.toInt()
-            }
+            val targetValidCount = _uiState.value.targetValidIpCount.toInt()
             val targetAllCount = _uiState.value.targetAllValidIpCount.toInt()
+            val hasAll = activeChips.contains("ALL")
+            val specificChips = activeChips.filter { it != "ALL" }
+            val hasSpecific = specificChips.isNotEmpty()
 
             var isFirstRound = true
             
             while (isActive) {
                 val totalValid = _uiState.value.validIps.size
-                val currentValidMatches = if (activeChips.contains("ALL")) {
-                     totalValid
-                } else {
-                     _uiState.value.validIps.count { activeChips.contains(it.colo.uppercase()) }
+                val currentValidMatches = _uiState.value.validIps.count { specificChips.contains(it.colo.uppercase()) }
+                
+                var shouldStop = true
+                if (hasAll && totalValid < targetAllCount) {
+                    shouldStop = false
                 }
-                if (activeChips.contains("ALL")) {
-                    if (totalValid >= targetAllCount) break
-                } else {
-                    if (currentValidMatches >= targetValidCount) break
+                if (hasSpecific && currentValidMatches < targetValidCount) {
+                    shouldStop = false
                 }
+                if (!hasAll && !hasSpecific) {
+                    if (totalValid < targetAllCount) shouldStop = false
+                }
+                
+                if (shouldStop) break
                 
                 val ipsToTest = if (isFirstRound && localIps.isNotEmpty()) {
                     isFirstRound = false
@@ -183,16 +186,20 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     if (!isActive) break
                     
                     val totalValidInner = _uiState.value.validIps.size
-                    val innerValidMatches = if (activeChips.contains("ALL")) {
-                         totalValidInner
-                    } else {
-                         _uiState.value.validIps.count { activeChips.contains(it.colo.uppercase()) }
+                    val innerValidMatches = _uiState.value.validIps.count { specificChips.contains(it.colo.uppercase()) }
+                    
+                    var innerShouldStop = true
+                    if (hasAll && totalValidInner < targetAllCount) {
+                        innerShouldStop = false
                     }
-                    if (activeChips.contains("ALL")) {
-                        if (totalValidInner >= targetAllCount) break
-                    } else {
-                        if (innerValidMatches >= targetValidCount) break
+                    if (hasSpecific && innerValidMatches < targetValidCount) {
+                        innerShouldStop = false
                     }
+                    if (!hasAll && !hasSpecific) {
+                        if (totalValidInner < targetAllCount) innerShouldStop = false
+                    }
+                    
+                    if (innerShouldStop) break
                     
                     val jobs = chunk.map { ip ->
                         launch {
@@ -317,18 +324,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun setFilter(colo: String) {
         val current = _uiState.value.activeFilters.toMutableSet()
-        if (colo == "ALL") {
-            current.clear()
-            current.add("ALL")
+        if (current.contains(colo)) {
+            current.remove(colo)
         } else {
-            current.remove("ALL")
-            if (current.contains(colo)) {
-                current.remove(colo)
-            } else {
-                current.add(colo)
-            }
-            if (current.isEmpty()) current.add("ALL")
+            current.add(colo)
         }
+        if (current.isEmpty()) current.add("ALL")
+        
         val newFilterStr = current.joinToString(",")
         updateDataCenterFilter(newFilterStr)
     }
