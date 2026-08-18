@@ -386,42 +386,6 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
         }
         }
         
-        item {
-            AnimatedVisibility(
-                visible = uiState.isScanning || uiState.scannedCount > 0,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // 测速进度条 Card
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = CardBackground),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            val progress = if (uiState.targetIpCount > 0) (uiState.scannedCount.toFloat() / uiState.targetIpCount).coerceIn(0f, 1f) else 0f
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("进度: ${(progress * 100).toInt()}%", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                                Text("${uiState.scannedCount} / ${uiState.targetIpCount.toInt()} IPs", color = PrimaryOrange, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                                color = PrimaryOrange,
-                                trackColor = DarkBackground
-                            )
-                        }
-                    }
-                }
-            }
-        }
 
         item {
             Spacer(modifier = Modifier.height(24.dp))
