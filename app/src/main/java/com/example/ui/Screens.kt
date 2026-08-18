@@ -396,11 +396,19 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Filters
-            val activeAndValid = (listOf(uiState.activeFilter) + uiState.validIps.map { it.colo }).filter { it != "ALL" }.distinct().sorted()
-            val colos = listOf("ALL") + activeAndValid
+            val allUniqueColos = (uiState.activeFilters + uiState.validIps.map { it.colo }).filter { it != "ALL" }.distinct()
+            val selectedColos = allUniqueColos.filter { uiState.activeFilters.contains(it) }.sorted()
+            val unselectedColos = allUniqueColos.filter { !uiState.activeFilters.contains(it) }.sorted()
+            
+            val finalColos = mutableListOf("ALL")
+            finalColos.addAll(selectedColos)
+            if (!uiState.isScanning) {
+                finalColos.addAll(unselectedColos)
+            }
+            
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(colos) { colo ->
-                    val isSelected = uiState.activeFilter == colo
+                items(finalColos) { colo ->
+                    val isSelected = uiState.activeFilters.contains(colo)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
