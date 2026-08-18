@@ -114,6 +114,8 @@ object ScannerEngine {
                             "UNK"
                         }
                         
+                        if (colo.uppercase() == "UNK") return@withContext null
+                        
                         val apiLatency = if (json.has("latencyMs") && !json.isNull("latencyMs")) {
                             json.getLong("latencyMs")
                         } else {
