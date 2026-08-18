@@ -1,11 +1,25 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.Properties
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
-val buildTime = System.currentTimeMillis()
-val df = SimpleDateFormat("yyMMddHHmm")
-val buildVersionCode = (buildTime / 1000).toInt()
-val buildVersionName = "1.0.${df.format(Date(buildTime))}"
+val versionPropsFile = file("version.properties")
+val versionProps = Properties()
+if (versionPropsFile.exists()) {
+    versionProps.load(FileInputStream(versionPropsFile))
+}
+var buildCount = (versionProps.getProperty("BUILD_COUNT") ?: "0").toInt()
+
+val taskReqs = gradle.startParameter.taskRequests.toString().lowercase()
+if (taskReqs.contains("assemble") || taskReqs.contains("bundle")) {
+    buildCount++
+    versionProps.setProperty("BUILD_COUNT", buildCount.toString())
+    versionProps.store(FileOutputStream(versionPropsFile), null)
+}
+if (buildCount == 0) buildCount = 1
+
+val buildVersionCode = buildCount
+val buildVersionName = "1.4.$buildCount"
 
 plugins {
   alias(libs.plugins.android.application)
