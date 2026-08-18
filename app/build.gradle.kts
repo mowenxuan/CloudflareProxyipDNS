@@ -3,23 +3,30 @@ import java.util.Properties
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
-val versionPropsFile = file("version.properties")
-val versionProps = Properties()
-if (versionPropsFile.exists()) {
-    versionProps.load(FileInputStream(versionPropsFile))
-}
-var buildCount = (versionProps.getProperty("BUILD_COUNT") ?: "0").toInt()
+val githubRunNumber = System.getenv("GITHUB_RUN_NUMBER")
+var buildCount = 1
 
-val taskReqs = gradle.startParameter.taskRequests.toString().lowercase()
-if (taskReqs.contains("assemble") || taskReqs.contains("bundle")) {
-    buildCount++
-    versionProps.setProperty("BUILD_COUNT", buildCount.toString())
-    versionProps.store(FileOutputStream(versionPropsFile), null)
+if (githubRunNumber != null && githubRunNumber.isNotEmpty()) {
+    buildCount = githubRunNumber.toInt()
+} else {
+    val versionPropsFile = file("version.properties")
+    val versionProps = Properties()
+    if (versionPropsFile.exists()) {
+        versionProps.load(FileInputStream(versionPropsFile))
+    }
+    buildCount = (versionProps.getProperty("BUILD_COUNT") ?: "0").toInt()
+
+    val taskReqs = gradle.startParameter.taskRequests.toString().lowercase()
+    if (taskReqs.contains("assemble") || taskReqs.contains("bundle")) {
+        buildCount++
+        versionProps.setProperty("BUILD_COUNT", buildCount.toString())
+        versionProps.store(FileOutputStream(versionPropsFile), null)
+    }
+    if (buildCount == 0) buildCount = 1
 }
-if (buildCount == 0) buildCount = 1
 
 val buildVersionCode = buildCount
-val buildVersionName = "1.4.$buildCount"
+val buildVersionName = "1.4.$buildCount" 
 
 plugins {
   alias(libs.plugins.android.application)
@@ -42,6 +49,15 @@ android {
     versionName = buildVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  splits {
+    abi {
+      isEnable = true
+      reset()
+      include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+      isUniversalApk = true
+    }
   }
 
   signingConfigs {

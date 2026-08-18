@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build All APK Variants
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -54,16 +54,16 @@ jobs:
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
           fi
 
-      # 执行打包命令
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace --no-daemon --no-configuration-cache
+      # 执行打包命令: 编译所有变体 (包含 Release 和 Debug，以及所有的架构分包)
+      - name: Build All Variants
+        run: gradle assemble --stacktrace --no-daemon --no-configuration-cache
 
-      # 上传生成的 APK 文件
+      # 上传生成的所有的变体 APK 文件
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: app-apks
+          path: app/build/outputs/apk/**/*.apk
 
       # 自动发布所有的变体安装包到 Release
       - name: Publish to GitHub Release
@@ -72,7 +72,7 @@ jobs:
         with:
           tag_name: "v1.4.${{ github.run_number }}"
           name: "cfnatddns v1.4.${{ github.run_number }}"
-          files: app/build/outputs/apk/debug/*.apk
+          files: app/build/outputs/apk/**/*.apk
           draft: false
           prerelease: false
           generate_release_notes: true
