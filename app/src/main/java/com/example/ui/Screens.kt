@@ -230,7 +230,10 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Cloudflare IP 引擎", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        val batchInfo = if (uiState.isScanning || uiState.scannedCount > 0) "第 1 批: 已扫描 ${uiState.scannedCount} / ${uiState.targetIpCount.toInt()} (${uiState.validIps.size} 个有效)" else "就绪"
+                        val targetPerRound = uiState.targetIpCount.toInt().coerceAtLeast(1)
+                        val roundNumber = (uiState.scannedCount / targetPerRound) + 1
+                        val currentRoundScanned = uiState.scannedCount % targetPerRound
+                        val batchInfo = if (uiState.isScanning || uiState.scannedCount > 0) "第 ${roundNumber} 批: 已扫描 ${currentRoundScanned} / ${targetPerRound} (${uiState.validIps.size} 个有效)" else "就绪"
                         Text(batchInfo, fontSize = 14.sp, color = TextSecondary)
                     }
                     IconButton(onClick = { showSettings = !showSettings }) {
@@ -267,14 +270,16 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            val progress = if (uiState.targetIpCount > 0) (uiState.scannedCount.toFloat() / uiState.targetIpCount).coerceIn(0f, 1f) else 0f
+                            val targetPerRound = uiState.targetIpCount.toInt().coerceAtLeast(1)
+                            val currentRoundScanned = uiState.scannedCount % targetPerRound
+                            val progress = (currentRoundScanned.toFloat() / targetPerRound).coerceIn(0f, 1f)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("进度: ${(progress * 100).toInt()}%", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                                Text("${uiState.scannedCount} / ${uiState.targetIpCount.toInt()} IPs", color = PrimaryOrange, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Text("${currentRoundScanned} / ${targetPerRound} IPs", color = PrimaryOrange, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             LinearProgressIndicator(
