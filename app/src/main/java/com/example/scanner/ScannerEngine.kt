@@ -23,7 +23,10 @@ object ScannerEngine {
         "172.64.0.0/13",
         "104.22.0.0/16",
         "172.68.0.0/16",
-        "172.69.0.0/16"
+        "172.69.0.0/16",
+        "172.71.0.0/16"'
+        "172.69.0.0/16"'
+        "162.158.0.0/16"
     )
 
     fun generateIpsAroundSeeds(seeds: List<String>, count: Int): List<String> {
