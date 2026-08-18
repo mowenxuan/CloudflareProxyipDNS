@@ -19,15 +19,11 @@ object ScannerEngine {
     
     // Some common CF IPv4 ranges
     private val cfCidrs = listOf(
-        "104.16.0.0/12",
-        "104.24.0.0/14",
-        "162.159.0.0/16",
-        "141.101.64.0/18",
+        "104.16.0.0/13",
         "172.64.0.0/13",
-        "188.114.96.0/20",
-        "190.93.240.0/20",
-        "197.234.240.0/22",
-        "198.41.128.0/17"
+        "104.22.0.0/16",
+        "172.68.0.0/16",
+        "172.69.0.0/16"
     )
 
     fun generateIpsAroundSeeds(seeds: List<String>, count: Int): List<String> {
