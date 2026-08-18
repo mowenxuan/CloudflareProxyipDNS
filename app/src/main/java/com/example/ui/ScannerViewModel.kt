@@ -167,7 +167,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     localIps
                 } else {
                     isFirstRound = false
-                    ScannerEngine.generateRandomIps(ipsToGeneratePerRound)
+                    val seeds = _uiState.value.validIps.map { it.ip }
+                    if (seeds.isNotEmpty()) {
+                        ScannerEngine.generateIpsAroundSeeds(seeds, ipsToGeneratePerRound)
+                    } else {
+                        ScannerEngine.generateRandomIps(ipsToGeneratePerRound)
+                    }
                 }
                 
                 for (chunk in ipsToTest.chunked(chunkSize)) {
@@ -206,7 +211,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                             latency = result.latency
                                         )
                                         repository.insertIp(scannedIp)
-                                        repository.updateFavorite(scannedIp.ip, true)
                                         
                                         _uiState.update { state ->
                                             val currentValid = state.validIps.toMutableList()
@@ -309,6 +313,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun setFilter(colo: String) {
         _uiState.update { it.copy(activeFilter = colo) }
+        updateDataCenterFilter(colo)
     }
 
     fun clearAll() {
