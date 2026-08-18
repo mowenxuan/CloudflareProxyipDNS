@@ -39,6 +39,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val TARGET_VALID_KEY = floatPreferencesKey("target_valid_count")
     private val TARGET_ALL_VALID_KEY = floatPreferencesKey("target_all_valid_count")
     private val API_URL_KEY = stringPreferencesKey("api_url")
+    private val DATACENTER_FILTER_KEY = stringPreferencesKey("datacenter_filter")
     
     init {
         val database = AppDatabase.getDatabase(application)
@@ -54,7 +55,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     targetIpCount = prefs[TARGET_IP_KEY] ?: 2000f,
                     targetValidIpCount = prefs[TARGET_VALID_KEY] ?: 10f,
                     targetAllValidIpCount = prefs[TARGET_ALL_VALID_KEY] ?: 100f,
-                    workerApiUrl = prefs[API_URL_KEY] ?: "proxyipsinp.xxxxxxx.nyc.mn"
+                    workerApiUrl = prefs[API_URL_KEY] ?: "proxyipsinp.xxxxxxx.nyc.mn",
+                    dataCenterFilter = prefs[DATACENTER_FILTER_KEY] ?: "ALL"
                 )
             }
         }
@@ -110,7 +112,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
     
     fun updateDataCenterFilter(filter: String) {
-        _uiState.update { it.copy(dataCenterFilter = filter) }
+        _uiState.update { it.copy(dataCenterFilter = filter.uppercase()) }
+        viewModelScope.launch { getApplication<Application>().dataStore.edit { it[DATACENTER_FILTER_KEY] = filter.uppercase() } }
     }
 
     fun toggleScanMode() {

@@ -324,6 +324,15 @@ fun ScannerScreen(viewModel: ScannerViewModel) {
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     OutlinedTextField(
+                        value = uiState.dataCenterFilter,
+                        onValueChange = { viewModel.updateDataCenterFilter(it) },
+                        label = { Text("数据中心过滤器 (如 HKG,SJC,LAX)", color = TextSecondary) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary)
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    OutlinedTextField(
                         value = uiState.workerApiUrl,
                         onValueChange = { viewModel.updateApiUrl(it) },
                         label = { Text("Worker API 链接 (无须 https://)", color = TextSecondary) },
@@ -390,8 +399,8 @@ fun StorageScreen(viewModel: ScannerViewModel) {
     val favoriteIps by viewModel.favoriteIps.collectAsState(initial = emptyList())
     val allSavedIps by viewModel.allSavedIps.collectAsState(initial = emptyList())
     
-    var showAll by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val displayIps = if (showAll) allSavedIps else favoriteIps
+    var showFavoritesOnly by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val displayIps = if (showFavoritesOnly) favoriteIps else allSavedIps
     
     val context = LocalContext.current
 
@@ -448,15 +457,15 @@ fun StorageScreen(viewModel: ScannerViewModel) {
             }
             
             OutlinedButton(
-                onClick = { showAll = !showAll },
+                onClick = { showFavoritesOnly = !showFavoritesOnly },
                 modifier = Modifier.weight(1f).height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryOrange),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryOrange),
                 shape = RoundedCornerShape(24.dp)
             ) {
-                Icon(if (showAll) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(20.dp))
+                Icon(if (showFavoritesOnly) Icons.Filled.Favorite else Icons.Default.FavoriteBorder, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (showAll) "显示收藏" else "显示全部", fontWeight = FontWeight.SemiBold)
+                Text(if (showFavoritesOnly) "显示全部" else "仅看收藏", fontWeight = FontWeight.SemiBold)
             }
         }
         
@@ -464,7 +473,7 @@ fun StorageScreen(viewModel: ScannerViewModel) {
 
         if (displayIps.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(if (showAll) "暂无保存的IP" else "暂无收藏的IP", color = TextSecondary)
+                Text(if (showFavoritesOnly) "暂无收藏的IP" else "暂无保存的IP", color = TextSecondary)
             }
         } else {
             LazyColumn(
