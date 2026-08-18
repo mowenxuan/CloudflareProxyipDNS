@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build All APK Variants
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,11 +26,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 将 Gradle 降级为更稳定兼容的 8.8 版本
+      # 安装指定版本的 Gradle 9.3.1
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.8'
+          gradle-version: '9.3.1'
           cache-disabled: true
 
       # 创建环境变量空文件 (防止报错)
@@ -54,25 +54,25 @@ jobs:
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
           fi
 
-      # 仅编译 Debug APK，避免全量 assemble 变体引发超时或兼容性崩溃
-      - name: Build Debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+      # 执行打包命令: 编译所有变体 (包含 Release 和 Debug，以及所有的架构分包)
+      - name: Build All Variants
+        run: gradle assemble --stacktrace --no-daemon --no-configuration-cache
 
-      # 上传生成的 APK 文件
+      # 上传生成的所有的变体 APK 文件
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: app-apks
+          path: app/build/outputs/apk/**/*.apk
 
-      # 自动发布安装包到 Release
+      # 自动发布所有的变体安装包到 Release
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.event_name != 'pull_request'
         with:
           tag_name: "v1.4.${{ github.run_number }}"
           name: "cfnatddns v1.4.${{ github.run_number }}"
-          files: app/build/outputs/apk/debug/*.apk
+          files: app/build/outputs/apk/**/*.apk
           draft: false
           prerelease: false
           generate_release_notes: true
