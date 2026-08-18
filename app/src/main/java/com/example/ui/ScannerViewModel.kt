@@ -49,6 +49,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val prefs = application.dataStore.data.first()
             _uiState.update { state ->
+                val savedFilter = prefs[DATACENTER_FILTER_KEY] ?: "ALL"
                 state.copy(
                     concurrentThreads = prefs[THREADS_KEY] ?: 100f,
                     maxLatency = prefs[LATENCY_KEY] ?: 350f,
@@ -56,7 +57,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     targetValidIpCount = prefs[TARGET_VALID_KEY] ?: 10f,
                     targetAllValidIpCount = prefs[TARGET_ALL_VALID_KEY] ?: 100f,
                     workerApiUrl = prefs[API_URL_KEY] ?: "proxyipsinp.xxxxxxx.nyc.mn",
-                    dataCenterFilter = prefs[DATACENTER_FILTER_KEY] ?: "ALL"
+                    dataCenterFilter = savedFilter,
+                    activeFilter = savedFilter
                 )
             }
         }
@@ -64,7 +66,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         // Load initial IPs from database into the UI state
         viewModelScope.launch {
             repository.allIps.collect { ips ->
-                if (!_uiState.value.isScanning && _uiState.value.validIps.isEmpty()) {
+                if (!_uiState.value.isScanning) {
                     _uiState.update { it.copy(validIps = ips) }
                 }
             }
@@ -167,7 +169,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     localIps
                 } else {
                     isFirstRound = false
-                    val seeds = _uiState.value.validIps.map { it.ip }
+                    val seeds = (localIps + _uiState.value.validIps.map { it.ip }).distinct()
                     if (seeds.isNotEmpty()) {
                         ScannerEngine.generateIpsAroundSeeds(seeds, ipsToGeneratePerRound)
                     } else {

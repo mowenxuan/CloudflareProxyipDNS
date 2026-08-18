@@ -36,8 +36,8 @@ object ScannerEngine {
         if (seeds.isEmpty()) return generateRandomIps(count)
         
         for (i in 0 until count) {
-            // 70% chance to expand around a known seed, 30% chance to explore totally random
-            if (random.nextInt(100) < 70) {
+            // 90% chance to expand around a known seed, 10% chance to explore totally random
+            if (random.nextInt(100) < 90) {
                 val seed = seeds[random.nextInt(seeds.size)]
                 val parts = seed.split(".")
                 if (parts.size == 4) {
