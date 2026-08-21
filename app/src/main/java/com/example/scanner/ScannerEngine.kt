@@ -19,29 +19,15 @@ import kotlin.random.Random
 object ScannerEngine {
     
     // Some common CF IPv4 ranges
-    private var cfCidrs = listOf(
-        "104.16.0.0/13",
-        "104.22.0.0/16",
-        "104.23.0.0/16",
-        "162.152.0.0/13",
-        "162.158.0.0/16",
-        "162.159.0.0/16",
-        "172.64.0.0/13",
-        "172.68.0.0/16",
-        "172.69.0.0/16",
-        "172.70.0.0/16",
-        "172.71.0.0/16"
-    )
+    private var cfCidrs: List<String> = emptyList()
 
     fun initialize(context: Context) {
         try {
             val lines = context.assets.open("ip.txt").bufferedReader().readLines()
             val parsedCidrs = lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
-            if (parsedCidrs.isNotEmpty()) {
-                cfCidrs = parsedCidrs
-            }
+            cfCidrs = parsedCidrs
         } catch (e: Exception) {
-            Log.e("ScannerEngine", "Failed to load ip.txt from assets, falling back to default.", e)
+            Log.e("ScannerEngine", "Failed to load ip.txt from assets.", e)
         }
     }
 
@@ -76,28 +62,34 @@ object ScannerEngine {
 
     fun generateRandomIps(count: Int): List<String> {
         val ips = mutableListOf<String>()
+        if (cfCidrs.isEmpty()) return ips
+        
         val random = Random.Default
         for (i in 0 until count) {
             val cidr = cfCidrs[random.nextInt(cfCidrs.size)]
             val parts = cidr.split("/")
-            val baseIp = parts[0]
-            val prefix = parts[1].toInt()
-            
-            val ipParts = baseIp.split(".").map { it.toLong() }
-            var ipLong = (ipParts[0] shl 24) or (ipParts[1] shl 16) or (ipParts[2] shl 8) or ipParts[3]
-            
-            val hostBits = 32 - prefix
-            val mask = (1L shl hostBits) - 1
-            val randomHost = (random.nextLong() and mask)
-            
-            val finalIpLong = (ipLong and mask.inv()) or randomHost
-            
-            val p1 = (finalIpLong shr 24) and 255
-            val p2 = (finalIpLong shr 16) and 255
-            val p3 = (finalIpLong shr 8) and 255
-            val p4 = finalIpLong and 255
-            
-            ips.add("$p1.$p2.$p3.$p4")
+            if (parts.size == 1) {
+                ips.add(parts[0])
+            } else {
+                val baseIp = parts[0]
+                val prefix = parts[1].toInt()
+                
+                val ipParts = baseIp.split(".").map { it.toLong() }
+                val ipLong = (ipParts[0] shl 24) or (ipParts[1] shl 16) or (ipParts[2] shl 8) or ipParts[3]
+                
+                val hostBits = 32 - prefix
+                val mask = (1L shl hostBits) - 1
+                val randomHost = (random.nextLong() and mask)
+                
+                val finalIpLong = (ipLong and mask.inv()) or randomHost
+                
+                val p1 = (finalIpLong shr 24) and 255
+                val p2 = (finalIpLong shr 16) and 255
+                val p3 = (finalIpLong shr 8) and 255
+                val p4 = finalIpLong and 255
+                
+                ips.add("$p1.$p2.$p3.$p4")
+            }
         }
         return ips
     }

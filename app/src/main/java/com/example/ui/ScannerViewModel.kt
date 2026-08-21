@@ -176,11 +176,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     isFirstRound = false
                     val seeds = (localIps + _uiState.value.validIps.map { it.ip }).distinct()
-                    if (seeds.isNotEmpty()) {
+                    val generated = if (seeds.isNotEmpty()) {
                         ScannerEngine.generateIpsAroundSeeds(seeds, ipsToGeneratePerRound)
                     } else {
                         ScannerEngine.generateRandomIps(ipsToGeneratePerRound)
                     }
+                    generated.distinct()
                 }
                 
                 for (chunk in ipsToTest.chunked(chunkSize)) {
