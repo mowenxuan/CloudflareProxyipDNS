@@ -42,7 +42,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val DATACENTER_FILTER_KEY = stringPreferencesKey("datacenter_filter")
     
     init {
-        com.example.scanner.ScannerEngine.initialize(application)
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            com.example.scanner.ScannerEngine.initialize(application)
+        }
         val database = AppDatabase.getDatabase(application)
         repository = IpRepository(database.scannedIpDao(), database.syncRuleDao())
         
@@ -128,6 +130,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun startScan() {
         if (_uiState.value.isScanning) return
+        
+        // Ensure ScannerEngine is initialized before starting
+        com.example.scanner.ScannerEngine.initialize(getApplication())
         
         // Grab local IPs before clearing the state
         val localIps = _uiState.value.validIps.map { it.ip }.distinct()
