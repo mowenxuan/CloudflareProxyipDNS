@@ -42,6 +42,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val DATACENTER_FILTER_KEY = stringPreferencesKey("datacenter_filter")
     
     init {
+        com.example.scanner.ScannerEngine.initialize(application)
         val database = AppDatabase.getDatabase(application)
         repository = IpRepository(database.scannedIpDao(), database.syncRuleDao())
         

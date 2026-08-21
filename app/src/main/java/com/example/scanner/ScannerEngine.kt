@@ -1,5 +1,6 @@
 package com.example.scanner
 
+import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,7 +19,7 @@ import kotlin.random.Random
 object ScannerEngine {
     
     // Some common CF IPv4 ranges
-    private val cfCidrs = listOf(
+    private var cfCidrs = listOf(
         "104.16.0.0/13",
         "104.22.0.0/16",
         "104.23.0.0/16",
@@ -31,6 +32,18 @@ object ScannerEngine {
         "172.70.0.0/16",
         "172.71.0.0/16"
     )
+
+    fun initialize(context: Context) {
+        try {
+            val lines = context.assets.open("ip.txt").bufferedReader().readLines()
+            val parsedCidrs = lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+            if (parsedCidrs.isNotEmpty()) {
+                cfCidrs = parsedCidrs
+            }
+        } catch (e: Exception) {
+            Log.e("ScannerEngine", "Failed to load ip.txt from assets, falling back to default.", e)
+        }
+    }
 
     fun generateIpsAroundSeeds(seeds: List<String>, count: Int): List<String> {
         val ips = mutableListOf<String>()
