@@ -112,7 +112,9 @@ object ScannerEngine {
                     val isSuccess = json.optBoolean("success", false)
                     
                     if (isSuccess) {
-                        val colo = if (json.has("colo") && !json.isNull("colo")) {
+                        val colo = if (json.has("dataCenter") && !json.isNull("dataCenter")) {
+                            json.getString("dataCenter")
+                        } else if (json.has("colo") && !json.isNull("colo")) {
                             json.getString("colo")
                         } else if (json.has("country") && !json.isNull("country")) {
                             json.getString("country")

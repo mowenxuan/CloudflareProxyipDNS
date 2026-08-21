@@ -56,7 +56,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     targetIpCount = prefs[TARGET_IP_KEY] ?: 2000f,
                     targetValidIpCount = prefs[TARGET_VALID_KEY] ?: 10f,
                     targetAllValidIpCount = prefs[TARGET_ALL_VALID_KEY] ?: 100f,
-                    workerApiUrl = prefs[API_URL_KEY] ?: "proxyipsinp.xxxxxxx.nyc.mn",
+                    workerApiUrl = prefs[API_URL_KEY] ?: "proxyip.xxxxxxx.nyc.mn",
                     dataCenterFilter = savedFilter,
                     activeFilters = if (savedFilter.isBlank()) setOf("ALL") else savedFilter.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
                 )
@@ -418,7 +418,7 @@ data class ScannerUiState(
     val validIps: List<ScannedIp> = emptyList(),
     val activeFilters: Set<String> = setOf("ALL"),
     val useCloudApi: Boolean = true,
-    val workerApiUrl: String = "proxyipsinp.xxxxxxx.nyc.mn",
+    val workerApiUrl: String = "proxyip.xxxxxxx.nyc.mn",
     val concurrentThreads: Float = 100f,
     val maxLatency: Float = 350f,
     val targetIpCount: Float = 2000f,
